@@ -1,4 +1,5 @@
-import axios from "axios";
+import { NewsAPIResponse } from "@/types/news";
+import axios, { isAxiosError } from "axios";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -6,6 +7,13 @@ export async function GET(req: NextRequest) {
 
   // get params
   const type = searchParams.get("type") || "everything";
+
+  if (type !== "everything" && type !== "top-headlines") {
+    return NextResponse.json(
+      { success: false, message: "Invalid type parameter." },
+      { status: 400 }
+    );
+  }
 
   const endpoint =
     type === "top-headlines"
@@ -55,23 +63,50 @@ export async function GET(req: NextRequest) {
   params["apiKey"] = apiKey;
 
   try {
-    const response = await axios.get(endpoint, { params });
-
-    return NextResponse.json({
-      success: true,
-      message: "News data fetched successfully",
-      data: response.data.articles,
-      totalResults: response.data.totalResults
+    const response = await axios.get<NewsAPIResponse>(endpoint, {
+      params,
+      headers: { "Cache-Control": "s-maxage=600, stale-while-revalidate=300" }
     });
-  } catch (error: any) {
-    console.error("NewsAPI error:", error.message);
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "News data fetched successfully",
+        data: response.data.articles,
+        totalResults: response.data.totalResults
+      },
+      {
+        status: 200,
+        headers: { "Cache-Control": "public, max-age=300" }
+      }
+    );
+  } catch (error: unknown) {
+    let message = "Unknown error occurred";
+    let status = 500;
+    let responseError: unknown = null;
+
+    if (isAxiosError(error)) {
+      console.error("AxiosError", {
+        url: endpoint,
+        params,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+
+      message = error.message;
+      status = error.response?.status ?? 500;
+      responseError = error.response?.data;
+    } else if (error instanceof Error) {
+      message = error.message;
+    }
+
     return NextResponse.json(
       {
         success: false,
         message: "Failed to fetch news data",
-        error: error.response?.data || error.message
+        error: responseError ?? message
       },
-      { status: error.response.status || 500 }
+      { status }
     );
   }
 }

@@ -28,3 +28,9 @@ export interface ArticleParams {
   country?: string;
   category?: string;
 }
+
+export interface NewsAPIResponse {
+  status: string;
+  totalResults: number;
+  articles: ArticleTypes[];
+}

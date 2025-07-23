@@ -5,13 +5,16 @@ interface NewsResponse {
   success: boolean;
   message: string;
   data: ArticleTypes[];
+  totalResults: number;
 }
 
 export const useNewsQuery = (params?: ArticleParams) => {
-  const queryParams = new URLSearchParams({
-    ...(params || {}),
-    type: params?.type || "everything"
-  }).toString();
+  const defaultParams: ArticleParams = { type: "everything" };
+  const finalParams = { ...defaultParams, ...params };
+
+  const queryParams = new URLSearchParams(
+    finalParams as Record<string, string>
+  ).toString();
 
   return useQuery<NewsResponse>({
     queryKey: ["news", queryParams],
@@ -26,6 +29,7 @@ export const useNewsQuery = (params?: ArticleParams) => {
       return res.json();
     },
 
+    staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false
   });
 };
