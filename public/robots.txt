@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://eigen-news-test.vercel.app/
+
+# Sitemaps
+Sitemap: https://eigen-news-test.vercel.app/sitemap.xml
